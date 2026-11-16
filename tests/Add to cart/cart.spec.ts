@@ -1,42 +1,34 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/authenticatedTest';
 import { CartPage } from '../../pages/CartPage';
 import { CheckoutPage } from '../../pages/CheckoutPage';
-import { LoginPage } from '../../pages/LoginPage';
 import { ProductsPage } from '../../pages/ProductsPage';
+import { cartProductTestCases } from '../../data/cartTestData';
 import { productTestData } from '../../data/productTestData';
 
 test.describe('Add to Cart functionality', () => {
   let productsPage: ProductsPage;
 
-  test.beforeEach(async ({ page }) => {
-    const password = process.env.TEST_PASSWORD;
-    if (!password) {
-      throw new Error('TEST_PASSWORD must be set in the selected environment file.');
-    }
-
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login('standard_user', password);
-
-    productsPage = new ProductsPage(page);
-    await expect(page).toHaveURL(/\/inventory\.html(?:[?#].*)?$/);
-    await productsPage.expectInventoryVisible();
+  test.beforeEach(async ({ authenticatedPage }) => {
+    productsPage = new ProductsPage(authenticatedPage);
   });
 
-  test('adds one product and verifies its cart contents', async ({ page }) => {
-    const expectedPrice = await productsPage.getProductPrice(productTestData.backpack);
-    await productsPage.addProductToCart(productTestData.backpack);
+  for (const testCase of cartProductTestCases) {
+    test(`adds ${testCase.name} and verifies its cart contents`, async ({ page }) => {
+      await productsPage.addProductToCart(testCase.name);
 
-    await expect(productsPage.productCard(productTestData.backpack).getByRole('button', { name: 'Remove' })).toBeVisible();
-    await expect(productsPage.cartBadge).toHaveText('1');
-    await productsPage.openCart();
+      await expect(
+        productsPage.productCard(testCase.name).getByRole('button', { name: 'Remove' }),
+      ).toBeVisible();
+      await expect(productsPage.cartBadge).toHaveText('1');
+      await productsPage.openCart();
 
-    const cartPage = new CartPage(page);
-    await cartPage.expectVisible();
-    await expect(cartPage.cartItems).toHaveCount(1);
-    expect(await cartPage.getItemNames()).toEqual([productTestData.backpack]);
-    expect(await cartPage.getItemPrices()).toEqual([expectedPrice]);
-  });
+      const cartPage = new CartPage(page);
+      await cartPage.expectVisible();
+      await expect(cartPage.cartItems).toHaveCount(1);
+      expect(await cartPage.getItemNames()).toEqual([testCase.name]);
+      expect(await cartPage.getItemPrices()).toEqual([testCase.expectedPrice]);
+    });
+  }
 
   test('adds multiple products and verifies cart count and contents', async ({ page }) => {
     const expectedNames = [productTestData.backpack, productTestData.bikeLight];
@@ -235,67 +227,35 @@ test.describe('Add to Cart functionality', () => {
     expect(await cartPage.getItemNames()).toEqual(expectedNames);
   });
 
-  test('records whether an empty cart order can be completed', async ({ page }) => {
-    const productNames = [productTestData.backpack, productTestData.bikeLight];
-    for (const name of productNames) {
-      await productsPage.addProductToCart(name);
-    }
+  test('completes checkout successfully with an empty cart', async ({ page }) => {
     await productsPage.openCart();
-
     const cartPage = new CartPage(page);
     await cartPage.expectVisible();
-    await expect(cartPage.cartItems).toHaveCount(productNames.length);
-
-    for (const name of productNames) {
-      await cartPage.removeProduct(name);
-    }
-
     await expect(cartPage.cartItems).toHaveCount(0);
     await expect(productsPage.cartBadge).toBeHidden();
 
-    await test.step('Attempt checkout with an empty cart', async () => {
-      const checkoutButtonCount = await cartPage.checkoutButton.count();
-      const checkoutEnabled = checkoutButtonCount > 0 && (await cartPage.checkoutButton.isEnabled());
+    await cartPage.checkout();
+    await expect(page).toHaveURL(/\/checkout-step-one\.html(?:[?#].*)?$/);
 
-      if (!checkoutEnabled) {
-        const result = checkoutButtonCount === 0
-          ? 'Blocked: no checkout button is available for an empty cart.'
-          : 'Blocked: the checkout button is disabled for an empty cart.';
-        test.info().annotations.push({ type: 'empty-cart-checkout-result', description: result });
-        console.info(result);
-        await expect(page).toHaveURL(/\/cart\.html(?:[?#].*)?$/);
-        return;
-      }
-
-      const checkoutPage = new CheckoutPage(page);
-      await cartPage.checkout();
-      await expect(page).toHaveURL(/\/checkout-step-one\.html(?:[?#].*)?$/);
-      await checkoutPage.fillCustomerInformation({
-        firstName: 'Test',
-        lastName: 'Customer',
-        postalCode: '12345',
-      });
-      await checkoutPage.continue();
-      await expect(page).toHaveURL(/\/checkout-step-two\.html(?:[?#].*)?$/);
-      await expect(checkoutPage.itemNames).toHaveCount(0);
-      await expect(checkoutPage.total).toHaveText('Total: $0.00');
-
-      const finishButtonCount = await checkoutPage.finishButton.count();
-      const finishEnabled = finishButtonCount > 0 && (await checkoutPage.finishButton.isEnabled());
-      if (!finishEnabled) {
-        const result = 'Blocked: the empty-cart checkout overview cannot be finished.';
-        test.info().annotations.push({ type: 'empty-cart-checkout-result', description: result });
-        console.info(result);
-        return;
-      }
-
-      await checkoutPage.finish();
-      await expect(page).toHaveURL(/\/checkout-complete\.html(?:[?#].*)?$/);
-      await expect(checkoutPage.completeHeader).toHaveText('Thank you for your order!');
-
-      const result = 'Allowed: the application completed an order with an empty cart and a $0.00 total.';
-      test.info().annotations.push({ type: 'empty-cart-checkout-result', description: result });
-      console.info(result);
+    const checkoutPage = new CheckoutPage(page);
+    await checkoutPage.expectInformationVisible();
+    await checkoutPage.fillCustomerInformation({
+      firstName: 'Test',
+      lastName: 'Customer',
+      postalCode: '12345',
     });
+    await checkoutPage.continue();
+
+    await expect(page).toHaveURL(/\/checkout-step-two\.html(?:[?#].*)?$/);
+    await checkoutPage.expectOverviewVisible();
+    await expect(checkoutPage.itemNames).toHaveCount(0);
+    expect(await checkoutPage.getAmount(checkoutPage.subtotal)).toBe(0);
+    expect(await checkoutPage.getAmount(checkoutPage.tax)).toBe(0);
+    expect(await checkoutPage.getAmount(checkoutPage.total)).toBe(0);
+
+    await checkoutPage.finish();
+    await expect(page).toHaveURL(/\/checkout-complete\.html(?:[?#].*)?$/);
+    await expect(checkoutPage.completeHeader).toHaveText('Thank you for your order!');
+    await expect(checkoutPage.completeMessage).toContainText('Your order has been dispatched');
   });
 });

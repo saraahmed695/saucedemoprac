@@ -1,24 +1,12 @@
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../../pages/LoginPage';
+import { test, expect } from '../fixtures/authenticatedTest';
 import { ProductsPage } from '../../pages/ProductsPage';
 import { productTestData } from '../../data/productTestData';
 
 test.describe('Product functionality', () => {
   let productsPage: ProductsPage;
 
-  test.beforeEach(async ({ page }) => {
-    const password = process.env.TEST_PASSWORD;
-    if (!password) {
-      throw new Error('TEST_PASSWORD must be set in the selected environment file.');
-    }
-
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login('standard_user', password);
-
-    productsPage = new ProductsPage(page);
-    await expect(page).toHaveURL(/\/inventory\.html(?:[?#].*)?$/);
-    await productsPage.expectInventoryVisible();
+  test.beforeEach(async ({ authenticatedPage }) => {
+    productsPage = new ProductsPage(authenticatedPage);
   });
 
   test('displays all six available products on the inventory page', async () => {

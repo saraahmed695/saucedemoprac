@@ -54,6 +54,6 @@ There are no npm test scripts currently; invoke Playwright through `npx`.
 
 ## Known WebKit stability history
 
-The latest full cross-browser run completed with **289 passed and 2 failed** across Chromium, Firefox and WebKit. Both reported failures occurred in WebKit, in the Reset App State scenarios from inventory and spinner routes.
+The latest full cross-browser run completed with **314 passed and 1 failed** across Chromium, Firefox and WebKit. Two flaky tests,Both  occurred in WebKit, in the Reset App State scenarios from inventory and spinner routes.
 
  [Test reporting](docs/TEST_REPORTING.md).

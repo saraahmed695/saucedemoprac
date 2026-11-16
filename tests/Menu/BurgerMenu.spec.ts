@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/authenticatedTest';
 import { BurgerMenuPage } from '../../pages/BurgerMenuPage';
 import { CartPage } from '../../pages/CartPage';
 import { CheckoutPage } from '../../pages/CheckoutPage';
@@ -44,20 +44,9 @@ test.describe('Burger menu functionality', () => {
   let burgerMenuPage: BurgerMenuPage;
   let productsPage: ProductsPage;
 
-  test.beforeEach(async ({ page }) => {
-    const password = process.env.TEST_PASSWORD;
-    if (!password) {
-      throw new Error('TEST_PASSWORD must be set in the selected environment file.');
-    }
-
-    const loginPage = new LoginPage(page);
-    burgerMenuPage = new BurgerMenuPage(page);
-    await loginPage.goto();
-    await loginPage.login('standard_user', password);
-
-    productsPage = new ProductsPage(page);
-    await expect(page).toHaveURL(/\/inventory\.html(?:[?#].*)?$/);
-    await productsPage.expectInventoryVisible();
+  test.beforeEach(async ({ authenticatedPage }) => {
+    burgerMenuPage = new BurgerMenuPage(authenticatedPage);
+    productsPage = new ProductsPage(authenticatedPage);
   });
 
   test('starts with the menu closed', async () => {

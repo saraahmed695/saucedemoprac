@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Validate the SauceDemo storefront's primary user journeys and important state transitions through browser-based end-to-end tests.
+Validate the functionality of SauceDemo storefront's primary user journeys and important state transitions through browser-based end-to-end tests.
 
 ## Scope
 
@@ -14,7 +14,7 @@ The automated suite exercises:
 - Checkout: required-field validation, order overview and totals, tax rounding, order completion, post-completion behavior, and PDF download.
 - Burger menu: open/close state, navigation, submenu, About/logout/reset actions, and dynamic catalog Lazy Load, Spinner, and Slider.
 
-The tests target the configured SauceDemo application, not isolated unit or API behavior. The project does not define a local application server.
+
 
 ## Browser and execution strategy
 
@@ -37,7 +37,7 @@ Retries can help CI recover from transient infrastructure issues, but do not cou
 
 ## Test design
 
-- Each test establishes its own authenticated state in `beforeEach` where needed.
+- Authenticated suites use a test-scoped `authenticatedPage` fixture to log in and verify inventory readiness; each test retains an isolated browser context.
 - Shared page objects encapsulate locators and user-level actions.
 - Product and login inputs are centralized in `data/`.
 - Assertions check user-visible outcomes such as URL, rendered content, cart state, validation messages, and downloaded files.

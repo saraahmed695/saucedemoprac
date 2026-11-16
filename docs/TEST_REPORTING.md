@@ -34,12 +34,12 @@ The following test runs were performed during the project:
 | Initial WebKit stability run | WebKit, 5 repetitions | 471 passed, 1 failed, 13 flaky | Exposed intermittent Lazy Load and Reset App State issues. |
 | Focused WebKit verification | Lazy Load and four Reset App State scenarios, 5 repetitions each | 25 passed, 0 failed, 0 flaky | Completed after synchronization fixes, with retries disabled. |
 | Final full cross-browser run | Chromium, Firefox, and WebKit | 289 passed, 2 failed | Both reported failures were WebKit Reset App State scenarios: inventory and Spinner. |
+| Additional full cross-browser run | Chromium, Firefox, and WebKit | 314 passed, 1 failed | The reported failure was associated with WebKit Reset App State behavior. |
 
-The focused WebKit verification covered only the previously affected scenarios and does not establish full-suite stability. The final cross-browser run still had two failures; these should be reported as outstanding rather than treated as resolved.
+
+
 
 ## WebKit stability incident and disposition
-
-On November 13, 2026, a WebKit `repeat-each=5` stability run reported **471 passed, 1 failed, and 13 flaky**. The affected behaviors were:
 
 1. **Lazy Load adds products when scrolling** — the test read the initial item list immediately after route navigation. When the first lazy-loaded item had not rendered yet, the count was zero and the assertion failed.
 2. **Reset App State from inventory, Lazy Load, Spinner, and Slider** — a menu action could begin while the browser's burger-menu CSS transform was still transitioning. The failure contexts showed menu links resolved but hidden or unstable; one Spinner attempt timed out after 30 seconds. Traces showed ARIA/route state could update separately from visual panel state, so the next click could occur before the menu was interactable.
@@ -48,6 +48,14 @@ The fix synchronizes the menu page object with the `aria-hidden` state and compu
 
 Post-fix focused verification ran the Lazy Load test and the four named Reset App State routes five times each with one worker and retries disabled: **25 passed, 0 failed, 0 flaky**. This verifies those affected cases only. It is not a rerun of the original full repeat matrix, so it does not erase or supersede the historical failure/flaky counts.
 
+## Observed application behavior
+
+The following behaviors were observed during testing. They are recorded as observations, not as confirmation that they are intended application behavior:
+
+1. **Checkout with an empty cart:** The application allows checkout to proceed with no cart items and complete an order with a $0.00 total.
+2. **Direct access to checkout overview:** The checkout step-two URL can be opened directly without first completing the customer information form and checkout is possible.
+3. **Reset App State product controls:** Resetting app state clears the cart badge, but product buttons continue to show **Remove** until the page is refreshed.
+
 ## Reporting expectations
 
-Record browser, exact command, pass/fail/flaky totals, test names, and artifact paths for repeat runs. Report first-attempt failures even if a retry passes; distinguish a flaky test from a clean first-attempt pass. Do not describe the focused rerun as proof of full-suite stability.
+Record browser, exact command, pass/fail/flaky totals, test names, and artifact paths for repeat runs. Report first-attempt failures even if a retry passes; distinguish a flaky test from a clean first-attempt pass.

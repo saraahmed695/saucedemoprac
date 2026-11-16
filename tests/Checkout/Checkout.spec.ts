@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/authenticatedTest';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { CartPage } from '../../pages/CartPage';
 import { CheckoutCustomerInformation, CheckoutPage } from '../../pages/CheckoutPage';
-import { LoginPage } from '../../pages/LoginPage';
 import { ProductsPage } from '../../pages/ProductsPage';
 import { productTestData } from '../../data/productTestData';
 
@@ -60,18 +59,8 @@ test.describe('Checkout functionality', () => {
   let checkoutPage: CheckoutPage;
   let expectedPrices: string[];
 
-  test.beforeEach(async ({ page }) => {
-    const password = process.env.TEST_PASSWORD;
-    if (!password) {
-      throw new Error('TEST_PASSWORD must be set in the selected environment file.');
-    }
-
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login('standard_user', password);
-
-    const productsPage = new ProductsPage(page);
-    await expect(page).toHaveURL(/\/inventory\.html(?:[?#].*)?$/);
+  test.beforeEach(async ({ authenticatedPage }) => {
+    const productsPage = new ProductsPage(authenticatedPage);
     await productsPage.expectInventoryVisible();
 
     expectedPrices = await Promise.all(
@@ -82,9 +71,9 @@ test.describe('Checkout functionality', () => {
     }
     await productsPage.openCart();
 
-    cartPage = new CartPage(page);
+    cartPage = new CartPage(authenticatedPage);
     await cartPage.expectVisible();
-    checkoutPage = new CheckoutPage(page);
+    checkoutPage = new CheckoutPage(authenticatedPage);
   });
 
   test('completes an order successfully', async ({ page }) => {
@@ -316,11 +305,21 @@ test.describe('Checkout functionality', () => {
     });
   }
 
-  test('documents direct navigation to checkout overview without entering information', async ({ page }) => {
+  test('completes an order after direct navigation to checkout overview without entering information', async ({
+    page,
+  }) => {
     await page.goto('/checkout-step-two.html');
 
     await expect(page).toHaveURL(/\/checkout-step-two\.html(?:[?#].*)?$/);
     await checkoutPage.expectOverviewVisible();
+    expect(await checkoutPage.getItemNames()).toEqual(checkoutProductNames);
+    expect(await checkoutPage.getItemPrices()).toEqual(expectedPrices);
+
+    await checkoutPage.finish();
+
+    await expect(page).toHaveURL(/\/checkout-complete\.html(?:[?#].*)?$/);
+    await expect(checkoutPage.completeHeader).toHaveText('Thank you for your order!');
+    await expect(checkoutPage.completeMessage).toContainText('Your order has been dispatched');
   });
 
   test('cancels checkout and keeps cart items', async ({ page }) => {
