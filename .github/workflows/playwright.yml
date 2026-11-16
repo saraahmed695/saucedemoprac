@@ -17,6 +17,12 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+    - name: Create environment file
+      env:
+        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+      run: |
+        mkdir -p environments
+        printf 'URL=https://www.saucedemo.com\nTEST_USERS=standard_user,problem_user,performance_glitch_user\nTEST_PASSWORD=%s\n' "$TEST_PASSWORD" > environments/qa.env
     - name: Run Playwright tests
       run: npx playwright test
     - uses: actions/upload-artifact@v4
