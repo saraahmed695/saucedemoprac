@@ -52,6 +52,16 @@ There are no npm test scripts currently; invoke Playwright through `npx`.
 - [Test reporting](docs/TEST_REPORTING.md)
 - [CI/CD](docs/CI_CD.md)
 
+### Framework structure and test architecture
+
+- `tests/` contains feature-based Playwright specs plus complete shopping journeys in `E2E/`.
+- `tests/fixtures/authenticatedTest.ts` provides opt-in, test-scoped login setup and verifies inventory readiness. Each test keeps its own browser context; login and logout lifecycle tests control authentication directly.
+- `pages/` holds page objects that encapsulate page locators and user actions (Page Object Model).
+- `data/` contains reusable catalog and typed test-case data for data-driven scenarios.
+- `playwright.config.ts` selects the environment and browser projects, and configures parallelism, retries, HTML reporting, screenshots, and traces.
+
+The suite combines the Page Object Model, Playwright fixtures for setup, and data-driven tests. User journeys remain independent scenarios so their navigation and state transitions are easy to follow.
+
 ## Known WebKit stability history
 
 The latest full cross-browser run completed with **314 passed and 1 failed** across Chromium, Firefox and WebKit. Two flaky tests,Both  occurred in WebKit, in the Reset App State scenarios from inventory and spinner routes.
